@@ -216,7 +216,7 @@ def render_share_image(text:str, out_path:Path) -> Path:
     W,H = img.size; draw = ImageDraw.Draw(img)
 
     # generous text box
-    left, right = int(W*0.08), W-int(W*0.08)
+    left, right = int(W*0.12), W-int(W*0.12)
     top, bottom = int(H*0.14), int(H*0.88)
     box_w, box_h = right-left, bottom-top
 
