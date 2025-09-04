@@ -97,7 +97,7 @@ GLITCH_GLYPHS = list("▒▓░◼◻◾◽▞▚▣▤▥▦▧▨▩◆◇◈�
 
 # -------------------- UI: Inline Button --------------------
 KEYBOARD = InlineKeyboardMarkup(
-    [[InlineKeyboardButton("✦  D r a w   A g a i n  ✦", callback_data="draw_again")]]
+    [[InlineKeyboardButton("✦  d r a w   a g a i n  ✦", callback_data="draw_again")]]
 )
 
 # -------------------- EDIT CACHE --------------------
