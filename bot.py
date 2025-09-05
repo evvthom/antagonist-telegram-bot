@@ -1,6 +1,6 @@
-# bot.py — Antagonist Strategies
+# bot.py — Antagonist Strategies (ASCII-safe)
 # Animated ASCII cards + Share (PNG) + Renounce (delete) + Draw Again
-# Start message has no buttons; buttons appear only on drawn cards.
+# Frames use + - | and simple ornaments (** ::) for maximum device compatibility.
 
 import os, re, random, asyncio, logging
 from textwrap import wrap
@@ -31,19 +31,19 @@ FONT_FILE = Path("VT323-Regular.ttf")
 OUT_DIR   = Path("out"); OUT_DIR.mkdir(exist_ok=True)
 
 # ---------- ANIMATION CONFIG ----------
-PACING = {"line_reveal_min":0.28,"line_reveal_max":0.65,"glitch_min":0.08,
+PACING = {"line_reveal_min":0.38,"line_reveal_max":0.55,"glitch_min":0.12,
           "glitch_max":0.18,"drip_step":0.06,"settle_pause":0.22,"flicker_pause":0.16}
 RARE_EVENT_CHANCE = 0.012
 MAX_LINES, MIN_WIDTH, MAX_WIDTH = 10, 24, 48
 
-# Mystical frames (Unicode). We can add a compat mode later if needed.
-FANCY_FRAMES = [
-    {"tl":"╭","tr":"╮","bl":"╰","br":"╯","h":"─","v":"│","orn":"☽☾"},
-    {"tl":"┏","tr":"┓","bl":"┗","br":"┛","h":"━","v":"┃","orn":"✦✦"},
-    {"tl":"┌","tr":"┐","bl":"└","br":"┘","h":"─","v":"│","orn":"❖"},
-    {"tl":"╔","tr":"╗","bl":"╚","br":"╝","h":"═","v":"║","orn":"✶✶"},
+# ASCII-only frames (monospace-safe)
+ASCII_FRAMES = [
+    {"tl":"+","tr":"+","bl":"+","br":"+","h":"-","v":"|","orn":"**"},
+    {"tl":"+","tr":"+","bl":"+","br":"+","h":"-","v":"|","orn":"::"},
 ]
-GLITCH_GLYPHS = list("▒▓░◼◻◾◽▞▚▣▤▥▦▧▨▩◆◇◈✧✦✴✹✺✵✷✸✢✣✤✥※¤•·")
+
+# ASCII-only glitch set to avoid width drift
+GLITCH_GLYPHS = list(".:+*#/%=~")
 
 # Caches
 LAST_TEXT_CACHE: dict[tuple[int,int], str] = {}
@@ -53,7 +53,7 @@ LAST_CARD_PER_CHAT: dict[int, str] = {}
 def make_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("☾ keep/share ☾", callback_data="share_last"),
-         InlineKeyboardButton("✝ banish ✝", callback_data="renounce")],
+         InlineKeyboardButton("🜄 banish 🜄", callback_data="renounce")],
         [InlineKeyboardButton("✦ draw again ✦", callback_data="draw_again")],
     ])
 
@@ -157,13 +157,6 @@ async def reveal_lines(msg, style, inner_width, final_lines, pad_top, pad_bottom
     await asyncio.sleep(PACING["settle_pause"])
     await safe_edit(msg, fence(build_card(masked, style, inner_width, 0, 0)))
 
-    if random.random()<0.4:
-        alt=dict(style); alt["orn"]=style["orn"][::-1]
-        await asyncio.sleep(PACING["flicker_pause"])
-        await safe_edit(msg, fence(build_card(masked, alt, inner_width, 0, 0)))
-        await asyncio.sleep(PACING["flicker_pause"])
-        await safe_edit(msg, fence(build_card(masked, style, inner_width, 0, 0)))
-
 async def reveal_drip(msg, style, inner_width, final_lines, pad_top, pad_bottom, context):
     working=[""]*pad_top + final_lines + [""]*pad_bottom
     padded=[pad_center(ln, inner_width) for ln in working]
@@ -264,9 +257,12 @@ def render_share_image(text:str, out_path:Path) -> Path:
     return out_path
 
 # ---------- ORCHESTRATOR ----------
+def pick_frame() -> dict:
+    return random.choice(ASCII_FRAMES)
+
 async def animated_card_reveal(update:Update, context:ContextTypes.DEFAULT_TYPE, text:str):
     chat_id = update.effective_chat.id
-    style = random.choice(FANCY_FRAMES)
+    style = pick_frame()
     inner_width = compute_inner_width(text)
     body_lines  = wrap_card_text(text, inner_width)
     pad_top, pad_bottom = compute_square_padding(inner_width, len(body_lines))
@@ -317,12 +313,11 @@ async def on_share_last(update:Update, context:ContextTypes.DEFAULT_TYPE):
 async def on_renounce(update:Update, context:ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     if not q: return
-    # small acknowledgement; then vanish
     await q.answer("Gone.")
     try:
         await q.message.delete()
     except BadRequest:
-        pass  # already gone or insufficient rights
+        pass  # already deleted or insufficient rights
 
 # ---------- ERROR ----------
 async def on_error(update, context): log.error("[ERROR] %r", context.error)
@@ -336,7 +331,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_share_last, pattern="^share_last$"))
     app.add_handler(CallbackQueryHandler(on_renounce, pattern="^renounce$"))
     app.add_error_handler(on_error)
-    log.info("Antagonist Strategies running…")
+    log.info("Antagonist Strategies (ASCII-safe) running…")
     app.run_polling()
 
 if __name__ == "__main__":
